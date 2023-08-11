@@ -1,0 +1,26 @@
+```{r}
+sim_data <- read.csv("sim_data.csv")
+
+X <- cbind(sim_data$cont, sim_data$cat)
+N <- nrow(X)
+P <- ncol(X)
+
+```
+
+```{r}
+K_fold_cross_validate <- 
+```
+
+```{r}
+LOO_cross_validate <- 
+```
+
+```{r}
+T <- sim_data[, 4]
+censoring <- sim_data[, 5]
+real_T <- sim_data[, 6]
+model <- stan_model("")
+generated_T <- K_fold_cross_validate()
+analyze_results(generated_T, real_T)
+```
+
