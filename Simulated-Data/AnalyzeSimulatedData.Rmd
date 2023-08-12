@@ -1,3 +1,13 @@
+###############################################################################
+#Setup
+###############################################################################
+```{r setup, include=FALSE}
+setwd("~/Desktop/R/Generalized-Weibull-Regression-with-Applications-to-Survival-Data/Simulated-Data/")
+knitr::opts_chunk$set(echo = FALSE)
+options(mc.cores = parallel::detectCores())
+library(rstan)
+```
+
 ```{r}
 sim_data <- read.csv("sim_data.csv")
 
@@ -8,19 +18,168 @@ P <- ncol(X)
 ```
 
 ```{r}
-K_fold_cross_validate <- 
+analyze_results <- function(real_T, generated_T) {
+  
+  SSE <- sum((real_T - generated_T) ^ 2)
+  print(paste("Sum of squares due to error:", SSE))
+  print(sprintf("Average Squared Error: %f", SSE / N))
+  AAE <- sum(abs(real_T - generated_T))
+  print(paste("Average absolute error:", AAE / N))
+  T_ave <- mean(real_T)
+  RR <- 1 - SSE / sum((real_T - T_ave) ^ 2) 
+  sprintf("Coefficient of determination: %f", RR)
+}
 ```
 
+###############################################################################
+#K-Fold Cross-Validation Function
+#Function Parameters:
+# -K is the number of partitions for the data to be broken into
+# -model is the stan model to be used. Its data should be: 
+#       -generate_samples: boolean to generate predictions based off X_new
+#       -bayesian: boolean to use nonuniform priors
+#       -QR: boolean to use QR reparameterization
+#       -norm: boolean if data is normalized (Gelman)
+#       -N: the number of observations in the testing data
+#       -P: the number of predictor variables
+#       -X: the N by P matrix of predictor variables
+#       -T: the vector of N testing responses
+#       -N_new: the number of responses to be predicted
+#       -X_new: the N_new by P matrix of predictors to estimate from
+#       -trun: the length N vector telling whether each response was censored
+# -QR, norm, T, X, N, P, and censoring are the model data
+# -num_model_parameters is the number of non-regression parameters used in model
+# -num_chains is the number of chains to run
+# -iterations is the number of iterations to run each chain for
+# -init_r is the radius for initializing parameters in stan MCMC
+#Return Values:
+# -A list with the fits and predictions
+# -fits is a list of the fits used to predict each partition of the data
+# -predictions is a length N vector with predicted values for each response
+###############################################################################
 ```{r}
-LOO_cross_validate <- 
+K_fold_cross_validate <- function(K, QR, norm, model, T, X, N, P, censoring, num_model_parameters
+                             = 2, num_chains = 8, iterations = 5000, init_r = 2) {
+    
+    generated_Y <- numeric(N);
+    generated_T <- numeric(N);
+    samples_T <- matrix(0, ncol = N, nrow = 1 + num_chains * iterations / 2)
+    fits <- list()
+    
+    #############################################################################
+    # Partition the Data
+    #############################################################################
+    set.seed(123)
+    num_parts <- K
+    size_part <- trunc(1 / num_parts * N)
+    indices <- sample(1:N, N, replace = FALSE)
+    parts <- list()
+    for (i in 1:(num_parts - 1)) {
+      parts[[i]] <- indices[seq(size_part * (i - 1), size_part * i - 1)]
+    }
+    parts[[num_parts]] <- indices[seq(size_part * (num_parts - 1), N)]
+    
+    set.seed(Sys.time())
+    
+    #############################################################################
+    # Run the Model With Each Partition as a Testing Set
+    #############################################################################
+    for (i in 1:num_parts) {
+      print(sprintf("################################ Part %d ################################", i))
+      training_parts <- (1:num_parts)[-c(i)]
+      testing_indices <- parts[[i]]
+      training_indices <- unlist(parts[training_parts])
+      X_train <- as.matrix(X[training_indices, ])
+      X_test <- as.matrix(X[testing_indices, ])
+      Ti <- as.numeric(T[training_indices])
+      N_train <- nrow(X_train)
+      print(sprintf("N_train is %d", N_train))
+      N_test <- nrow(X_test)
+      censoring_train <- censoring[training_indices]
+      
+      fit <- sampling(model, list(generate_samples = TRUE, bayesian = TRUE, QR = QR, norm = norm, N = N_train, X = X_train, T = Ti, P = P, N_new = N_test, X_new = X_test, trun = censoring_train), iter = iterations, chains = num_chains, init_r = init_r)
+      
+      fits[[i]] <- fit
+      print(fit)
+      means <- get_posterior_mean(fit, pars = "T_new")
+      #samples <- rstan::extract(fit, pars = "T_new")
+      
+      generated_T[testing_indices] <- means[, num_chains + 1]
+      
+      #samples_T[, testing_indices] <- rbind(generated_T[testing_indices], matrix(unlist(samples), byrow = FALSE, ncol = N_test))
+    }
+    return(list(fits = fits, generated_T = generated_T))#, samples_T = samples_T))
+  }
+```
+
+###############################################################################
+#Leave-one-out Cross-Validation Function
+#Function Parameters:
+# -model is the stan model to be used. Its data should be: 
+#       -generate_samples: boolean to generate predictions based off X_new
+#       -bayesian: boolean to use nonuniform priors
+#       -QR: boolean to use QR reparameterization
+#       -norm: boolean if data is normalized (Gelman)
+#       -N: the number of observations in the testing data
+#       -P: the number of predictor variables
+#       -X: the N by P matrix of predictor variables
+#       -T: the vector of N testing responses
+#       -N_new: the number of responses to be predicted
+#       -X_new: the N_new by P matrix of predictors to estimate from
+#       -trun: the length N vector telling whether each response was censored
+# -QR, norm, T, X, N, P, and censoring are the model data
+# -num_model_parameters is the number of non-regression parameters used in model
+# -num_chains is the number of chains to run
+# -iterations is the number of iterations to run each chain for
+# -init_r is the radius for initializing parameters in stan MCMC
+#Return Values:
+# -A list with the fits and predictions
+# -fits is a list of the fits used to predict each partition of the data
+# -predictions is a length N vector with predicted values for each response
+###############################################################################
+```{r}
+LOO_cross_validate <- function(QR, norm, model, T, X, N, P, censoring, num_model_parameters
+                             = 2, num_chains = 8, iterations = 5000, init_r = 2) {
+    
+    generated_T <- numeric(N);
+    fits <- list()
+    
+    #############################################################################
+    # Run the Model Leaving one Data Point out of the Training Set Each Iteration
+    #############################################################################
+    for (i in 1:N) {
+      print(sprintf("################################ Part %d ################################", i))
+      X_train <- as.matrix(X[-i, ])
+      X_test <- matrix((X[i, ]), nrow = 1, ncol = 2)
+      Ti <- as.numeric(T[-i])
+      N_train <- N - 1
+      #print(sprintf("N_train is %d", N_train))
+      N_test <- 1
+      censoring_train <- censoring[-i]
+      
+      fit <- sampling(model, list(generate_samples = TRUE, bayesian = TRUE, QR = QR, norm = norm, N = N_train, X = X_train, T = Ti, P = P, N_new = N_test, X_new = X_test, trun = censoring_train), iter = iterations, chains = num_chains, init_r = init_r)
+      
+      fits[[i]] <- fit
+      print(fit)
+      means <- get_posterior_mean(fit, pars = "T_new")
+      #samples <- rstan::extract(fit, pars = "T_new")
+      
+      generated_T[i] <- means[num_chains + 1]
+      
+      #samples_T[, testing_indices] <- rbind(generated_T[testing_indices], matrix(unlist(samples), byrow = FALSE, ncol = N_test))
+    }
+    return(list(fits = fits, generated_T = generated_T))#, samples_T = samples_T))
+  }
 ```
 
 ```{r}
 T <- sim_data[, 4]
 censoring <- sim_data[, 5]
 real_T <- sim_data[, 6]
-model <- stan_model("")
-generated_T <- K_fold_cross_validate()
-analyze_results(generated_T, real_T)
+model <- stan_model("../Shiny/general_regression.stan")
+#results <- K_fold_cross_validate(5, FALSE, TRUE, model, T, X, N, P, censoring)
+results <- LOO_cross_validate(FALSE, TRUE, model, T, X, N, P, censoring)
+generated_T <- results$generated_T
+analyze_results(real_T, generated_T)
 ```
 
