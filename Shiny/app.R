@@ -14,7 +14,8 @@ options(mc.cores = parallel::detectCores())
 
 
 #TODO:
-#add option for manual data entry?
+#celltypes by number instead of name?
+
 #clean up UI (by putting everything in boxes?)
 #implement rough AIC/BIC before sampling for each model?
   #use optim instead of genoud
@@ -44,7 +45,7 @@ ui <- #fluidPage(style = "flex-direction: column",
                            ))
                   ),
                   
-                  actionButton("fileSelected", "CONTINUE1")
+                  actionButton("fileSelected", "CONTINUE")
                   
                 ),
                 
@@ -68,11 +69,34 @@ ui <- #fluidPage(style = "flex-direction: column",
                 
                 uiOutput("predictions"),
                 
-                uiOutput("predictionsFile")
+                uiOutput("comparisonPlots")
     )
 )
 
 server <- function(input, output) {
+  
+  # vars <- c(1, 2)
+  # varsNames <- c("one", "two")
+  # names(vars) <- varsNames
+  # 
+  # output$predictionComparisonPlot <- renderUI(
+  #   box(collapsible = TRUE, width = 12,
+  #     dashboardPage(
+  #       dashboardHeader(title = "Comparison Plots"),
+  #       dashboardSidebar(menuItem(radioButtons(inputId = "test", label = "test", choices = vars, selected = vars[2]))),
+  #       dashboardBody(
+  #         plotOutput("tempPlot")
+  #       )
+  #       
+  #     )
+  #   )
+  # )
+  
+  output$tempPlot <- renderPlot(hist(mtcars[, as.numeric(input$test)]))
+  # {print(input$test)
+  #   print(typeof(input$test))
+  # if (input$test == 1) hist(mtcars$mpg) else if (input$test == 2) hist(mtcars$cyl)
+  # })
   
   iv <- InputValidator$new()
   
@@ -85,7 +109,7 @@ server <- function(input, output) {
   
   values <- reactiveValues(continuousX = c(), discreteX = c(), T = c(), censoring = c(), 
                            P = 0, N = 0, X = NULL, QR = FALSE, norm = FALSE, fit = NULL,
-                           X_norm = NULL, model = NULL, fold = 1)
+                           X_norm = NULL, model = NULL, fold = 0)
   
   output$fileSelection <- renderUI(
     fileInput("file", "Input the file", multiple = FALSE, accept = input$fileType)
@@ -149,7 +173,7 @@ server <- function(input, output) {
           )),
         ),
         
-        actionButton("dataDescribed", "CONTINUE2")
+        actionButton("dataDescribed", "CONTINUE")
       )
     
     })
@@ -160,11 +184,11 @@ server <- function(input, output) {
     fluidPage(
       fluidRow(
         column(3, wellPanel(
-          numericInput("timeCol", "Please assign a column to failure time", value = 5, min = 1, step = 1)
+          numericInput("timeCol", "Please assign a column to failure time", value = 0, min = 1, step = 1)
         )),
         
         column(3, wellPanel(
-          numericInput("censorCol", "Please assign a column to censoring status", value = 6, min = 1, step = 1)
+          numericInput("censorCol", "Please assign a column to censoring status", value = 0, min = 1, step = 1)
         )),
         
         column(3, wellPanel(
@@ -178,7 +202,7 @@ server <- function(input, output) {
         )),
       ),
       
-      actionButton("doneWithData", "CONTINUE3")
+      actionButton("doneWithData", "CONTINUE")
     )
   })
   
@@ -427,41 +451,28 @@ server <- function(input, output) {
             
           ),
           
-          actionButton("crossValidate", "Cross Validate"))
+          actionButton("crossValidate", label = 
+                         sprintf("%s", if (values$fold == 0) "Cross Validate" else if (values$fold > input$fold) "Cross-validation complete" else sprintf("Cross-validation in progress, computing fold %d", values$fold)),
+                       )
+        )
       )
     }
     
   })
   
-  observeEvent(input$crossValidate, 
-               output$crossValidationStatus <- renderText(sprintf("Cross-validation in progress, computing fold %d", values$fold))
-               )
+  # observeEvent(input$crossValidate, 
+  #              output$crossValidationStatus <- renderText(sprintf("Cross-validation in progress, computing fold %d", values$fold))
+  #              )
   
   observeEvent(input$crossValidate, {
     
-    #output$crossValidationStatus <- renderText(sprintf("Cross-validation in progress, computing fold %d", values$fold))
+    output$crossValidationStatus <- renderText(sprintf("Cross-validation in progress, computing fold %d", values$fold))
     
     values$CVResults <- cross_validate(input$fold, values$QR, values$norm, values$model, values$T, 
                                        values$X, values$N, values$P, values$censoring, switch(input$model, "e" = 2, "g" = 2, "w" = 1),
                                        num_chains = input$chains, iterations = input$iter)
     
     output$crossValidationStatus <- NULL
-    
-    output$CVResults <- renderText(sprintf("%s\n\n", analyze_results(values$CVResults)))
-    
-    survplot_comp = data.frame(time = c(values$T, values$CVResults$generated_T), status = !c(values$censoring, numeric(values$N)), comp = c(rep("data", values$N), rep("prediction", values$N)))
-    
-    fit <- survfit(Surv(time, status) ~ comp, data = survplot_comp)
-    
-    #plot(ggsurvplot(fit, data = survplot_comp))
-    
-    output$predictionPlot <- renderPlot(ggsurvplot(fit, data = survplot_comp))
-    
-    # output$predictionsBox <- renderUI(
-    #   fluidRow(
-    #     box(title = "Prediction Values", collapsible = TRUE, width = 12,
-    #         renderDataTable(mtcars, options = list(scrollX = TRUE), rownames = FALSE))
-    #   ))
     
     output$predictions <- renderUI({
       dashboardPage(
@@ -485,6 +496,89 @@ server <- function(input, output) {
                 options = list(scrollX = TRUE, paging = TRUE, buttons = c("copy", "csv", "pdf", "excel"), dom = 'tB', server = FALSE), 
                 rownames = TRUE)
     })
+    
+    output$CVResults <- renderText(sprintf("%s\n\n", analyze_results(values$CVResults)))
+    
+    survplot_comp <- data.frame(time = c(values$T, values$CVResults$generated_T), status = !c(values$censoring, numeric(values$N)), comp = c(rep("data", values$N), rep("prediction", values$N)))
+    
+    fit <- survfit(Surv(time, status) ~ comp, data = survplot_comp)
+    
+    #plot(ggsurvplot(fit, data = survplot_comp))
+    
+    output$predictionPlot <- renderPlot(ggsurvplot(fit, data = survplot_comp, title = "Comparison of Predicted and Actual Failure Times"))
+    
+    # output$predictionsBox <- renderUI(
+    #   fluidRow(
+    #     box(title = "Prediction Values", collapsible = TRUE, width = 12,
+    #         renderDataTable(mtcars, options = list(scrollX = TRUE), rownames = FALSE))
+    #   ))
+    
+    if (input$numContinuousX > 0) {
+      print("test1")
+      varies <- list()
+      for (i in myseq(1, values$P - input$numContinuousX))
+        varies <- append(varies, sprintf("%s %s", values$names[[2 * i + input$numContinuousX - 1]], values$names[[2 * i + input$numContinuousX]]))
+      
+      plots1 <- list()
+      plots2 <- list()
+      
+      for (i in myseq(1, values$P - input$numContinuousX)) {
+        survplot_cur <- data.frame(time = values$T, status = !values$censoring, category = values$X[, i + input$numContinuousX])
+        fit_cur <- survfit(Surv(time, status) ~ category, data = survplot_cur)
+        plots1 <- append(plots1, ggsurvplot(fit_cur, data = survplot_cur, title = sprintf("Comparison of Actual Failure Times Based on Whether the Observation was %s", varies[i])))
+        survplot_cur <- data.frame(time = values$CVResults$generated_T, status = !numeric(values$N), category = values$X[, i + input$numContinuousX])
+        fit_cur <- survfit(Surv(time, status) ~ category, data = survplot_cur)
+        plots2 <- append(plots2, ggsurvplot(fit_cur, data = survplot_cur, title = sprintf("Comparison of Predicted Failure Times Based on Whether the Observation was %s", varies[i])))
+      }
+      
+      print("test2")
+      
+      names(plots1) <- varies
+      names(plots2) <- varies
+      names(varies) <- varies
+      
+      print("test3")
+      
+      output$comparisonPlot <- renderPlot(
+        plots1[[input$var]])
+      
+      print("test4")
+      
+      output$predictionComparisonPlot <- renderPlot(
+        plots2[[input$var]])
+      
+      print("test5")
+      
+      #output$test <- renderText(sprintf("%s", input$var))
+    
+      output$comparisonPlots <- renderUI(
+
+        box(collapsible = TRUE, width = 12, title = "Survival Plots", 
+            fluidPage(
+              fluidRow(
+                radioButtons(inputId = "var", label = "Choose which categorical variable to compare:", choices = varies, selected = varies[1])
+              ),
+              
+              fluidRow(
+                plotOutput("comparisonPlot"), plotOutput("predictionComparisonPlot")
+              )
+            )
+            
+            # dashboardPage(
+            #   dashboardHeader(title = "Survival Plots"),
+            #   dashboardSidebar(menuItem(radioButtons(inputId = "var", label = "", choices = varies, selected = varies[1]))),
+            #   dashboardBody(
+            #     fluidRow(
+            #       plotOutput("comparisonPlot"),
+            #       plotOutput("predictionComparisonPlot")
+            #     )
+            #   )
+            # )
+        )
+      )
+    }
+    
+    
 
   })
   
@@ -642,6 +736,7 @@ server <- function(input, output) {
       #                                        samples[[1 + 2 * P + num_model_parameters + N_test + j]])
       # }
     }
+    values$fold <- values$fold + 1
     return(list(fits = fits, generated_T = generated_T, samples_T = samples_T))
   }
   
