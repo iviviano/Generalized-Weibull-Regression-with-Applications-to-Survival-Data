@@ -5,8 +5,12 @@
 - [rstan](https://mc-stan.org/users/interfaces/rstan)
 - [rgenoud](https://cran.r-project.org/web/packages/rgenoud/index.html)
 - [tidyverse](https://www.tidyverse.org)
-- [survminer]()
-- [survival]()
+- [survminer](https://cran.r-project.org/web/packages/survminer/index.html)
+- [survival](https://cran.r-project.org/web/packages/survival/index.html)
+- [mclm](https://cran.r-project.org/web/packages/mclm/readme/README.html)
+- [shinyvalidate](https://rstudio.github.io/shinyvalidate/)
+- [DT](https://cran.r-project.org/web/packages/DT/index.html)
+- [shinydashboard](https://rstudio.github.io/shinydashboard/index.html)
 
 ### Operation Details
 The user is asked to input a data file. Several file types are supported. The user is asked to describe their data file. They must input:
@@ -34,3 +38,6 @@ The user may down
   4. The file of predictions contains both the matrix of samples and the mean values of the samples used for error calculations
 - Cross Validation is not allowed if no factors are given
 
+### Known Bugs
+- Some of the survival plots are not showing up
+- 
