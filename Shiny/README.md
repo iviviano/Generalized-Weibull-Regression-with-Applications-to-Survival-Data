@@ -3,17 +3,17 @@
 ---
 
 ### Required Packages:
-- [shiny](https://www.rstudio.com/products/shiny/)
-- [rstan](https://mc-stan.org/users/interfaces/rstan)
-- [rgenoud](https://cran.r-project.org/web/packages/rgenoud/index.html)
-- [tidyverse](https://www.tidyverse.org)
-- [survminer](https://cran.r-project.org/web/packages/survminer/index.html)
-- [survival](https://cran.r-project.org/web/packages/survival/index.html)
-- [mclm](https://cran.r-project.org/web/packages/mclm/readme/README.html)
-- [shinyvalidate](https://rstudio.github.io/shinyvalidate/)
 - [DT](https://cran.r-project.org/web/packages/DT/index.html)
+- [mclm](https://cran.r-project.org/web/packages/mclm/readme/README.html)
+- [rgenoud](https://cran.r-project.org/web/packages/rgenoud/index.html)
+- [rjson](https://cran.r-project.org/web/packages/rjson/index.html)
+- [rstan](https://mc-stan.org/users/interfaces/rstan)
+- [shiny](https://www.rstudio.com/products/shiny/)
 - [shinydashboard](https://rstudio.github.io/shinydashboard/index.html)
-- [rjson]()
+- [shinyvalidate](https://rstudio.github.io/shinyvalidate/)
+- [survival](https://cran.r-project.org/web/packages/survival/index.html)
+- [survminer](https://cran.r-project.org/web/packages/survminer/index.html)
+- [tidyverse](https://www.tidyverse.org)
 
 ---
 
@@ -36,9 +36,10 @@ Note: stan models sometimes have convergence issues. If you are getting very lar
 
 ### Implementation Details
 - Bayesian models use NUTS and are implemented with the open source software [Stan](https://mc-stan.org/users/interfaces/rstan)
+- Likelihood-based diagnostics use a population optimization algorithm implemented by [rgenoud](https://cran.r-project.org/web/packages/rgenoud/index.html)
 - Discrete factors are handled by:
-  1. Designating the first factor as the baseline
-  2. For each other factor, a indicator covariate is formed of comparison against the baseline
+  1. Designating the first value as the baseline
+  2. For each other observed value, an indicator covariate is formed of comparison against the baseline
 - Cross Validation with censoring:
   1. Predictions are created for every data point
   2. The error statistics are calculated by omitting censored observations
