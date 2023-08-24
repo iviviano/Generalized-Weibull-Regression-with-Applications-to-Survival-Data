@@ -10,6 +10,7 @@ This is the github repository for the Bayesian Parameter Estimation REU project 
 <p>
 The scripts used to simulate and analyze simulated data are located in the [Simulated Data](https://github.com/iviviano/Generalized-Weibull-Regression-with-Applications-to-Survival-Data/tree/main/Simulated-Data) folder. All files required to run the shiny app are located in the [Shiny](https://github.com/iviviano/Generalized-Weibull-Regression-with-Applications-to-Survival-Data/tree/main/Shiny) folder.
 </p>
+
 ---
 # Acknowledgement
 
