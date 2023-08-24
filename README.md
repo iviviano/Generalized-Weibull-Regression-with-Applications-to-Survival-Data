@@ -7,7 +7,9 @@ This is the github repository for the Bayesian Parameter Estimation REU project 
 >
 > Different model diagnostics tests such as the five-fold cross validation method, Akaike information criterion, and the Bayesian information criterion demonstrate the generalized Weibull distribution’s prediction accuracy. We found the generalized Weibull model to have superior results for multiple hazard function types. We also developed a Shiny app to dynamically visualize our models using real life data from lung cancer, heart attack, and German breast cancer studies. The app’s interactive interface lets users input their own data sets and see Weibull regression analysis on their data. 
 
+<p>
 The scripts used to simulate and analyze simulated data are located in the [Simulated Data](https://github.com/iviviano/Generalized-Weibull-Regression-with-Applications-to-Survival-Data/tree/main/Simulated-Data) folder. All files required to run the shiny app are located in the [Shiny](https://github.com/iviviano/Generalized-Weibull-Regression-with-Applications-to-Survival-Data/tree/main/Shiny) folder.
+</p>
 ---
 # Acknowledgement
 
