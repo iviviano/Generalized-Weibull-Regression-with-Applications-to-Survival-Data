@@ -27,7 +27,7 @@ set.seed(1)
 beta0 <- 2.5
 betas <- c(.3, -.6)
 N <- 100
-x1 <- rnorm(N, 0, .5); x2 <- rbernoulli(N, p = .2)
+x1 <- rnorm(N, 0, .5); x2 <- rbinom(N, size = 2, prob = .2)
 X <- cbind((x1 - mean(x1)) * .5 / sd(x1), x2 - mean(x2))
 P <- ncol(X)
 
@@ -64,8 +64,15 @@ DFR <- numeric(N)
 for (i in 1:N)
   DFR[i] <- rgengamma.orig(1, shape = lambda, scale = sigma, k = (beta0 - X %*% betas)[i])
 
-samples$DFR <- DFR
+samples$DFR1 <- DFR
 
+
+sigma <- 2; lambda = .95
+
+for (i in 1:N)
+  DFR[i] <- rgengamma.orig(1, shape = lambda, scale = sigma, k = (beta0 - X %*% betas)[i])
+
+samples$DFR2 <- DFR
 
 ###Bathtub: 
 #Gen Weib: alpha > 1, lambda > 0
@@ -78,8 +85,15 @@ bathtub <- numeric(N)
 for (i in 1:N)
   bathtub[i] <- rgengamma.orig(1, shape = lambda, scale = sigma, k = (beta0 - X %*% betas)[i])
 
-samples$bath <- bathtub
+samples$bath1 <- bathtub
 
+
+sigma <- 2; lambda <- 3
+
+for (i in 1:N)
+  bathtub[i] <- rgengamma.orig(1, shape = lambda, scale = sigma, k = (beta0 - X %*% betas)[i])
+
+samples$bath2 <- bathtub
 
 ###Unimodal: 
 #Gen Weib: alpha < 1, lambda < 0
@@ -92,8 +106,15 @@ uni <- numeric(N)
 for (i in 1:N)
   uni[i] <- rgengamma.orig(1, shape = lambda, scale = sigma, k = (beta0 - X %*% betas)[i])
 
-samples$uni <- uni
+samples$uni1 <- uni
 
+
+sigma <- 2; lambda <- .25
+
+for (i in 1:N)
+  uni[i] <- rgengamma.orig(1, shape = lambda, scale = sigma, k = (beta0 - X %*% betas)[i])
+
+samples$uni <- uni
 
 ###IFR: 
 #Gen Weib: alpha <= 1, lambda >= 0
@@ -106,7 +127,18 @@ IFR <- numeric(N)
 for (i in 1:N)
   IFR[i] <- rgengamma.orig(1, shape = lambda, scale = sigma, k = (beta0 - X %*% betas)[i])
 
-samples$IFR <- IFR
+samples$IFR1 <- IFR
+
+
+sigma <- .25; lambda <- 3
+for (i in 1:N)
+  IFR[i] <- rgengamma.orig(1, shape = lambda, scale = sigma, k = (beta0 - X %*% betas)[i])
+
+samples$IFR2 <- IFR
+
+
+
+
 
 
 sim_data <- as.data.frame(X)
@@ -115,7 +147,7 @@ names <- c("cont", "cat")
 censoring_fracs <- c(.1, .3, .5, .7)
 
 for (i in 1:length(samples)) {
-  col <- samples[[i]]
+  col <- 20 * samples[[i]]
   for (frac in censoring_fracs) {
     censored <- censor(col, frac = frac)
     sim_data <- cbind(sim_data, censored$data, censored$trun, col)
