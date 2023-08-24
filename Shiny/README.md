@@ -30,6 +30,7 @@ There are several options for the model:
 None of these options should affect the parameter estimates besides possibly improving convergence.
 The user may down
 
+Note: stan models sometimes have convergence issues. If you are getting very large values for the predictions from cross-validation (upwards of 10 orders of magnitude larger than the real data) try running cross-validation again, possibly with more iterations. 
 ---
 
 ### Implementation Details
