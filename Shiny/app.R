@@ -291,7 +291,9 @@ server <- function(input, output) {
   
   observeEvent(input$sample, {
     
-    data <- data.matrix(values$file)
+    data <- values$file #data.matrix(values$file)
+    
+    # view(data)
     
     values$T <- as.numeric(data[, input$timeCol])
     values$N <- length(values$T)
@@ -303,11 +305,9 @@ server <- function(input, output) {
     #X <- as.matrix(sapply(data[, values$continuousX], as.numeric))
     #X <- data.matrix(data[, values$continuousX])
     
-    #view(X)
+    # view(X)
     
     names <- list()
-    
-    print("test1")
     
     if (input$numDiscreteX > 0)
       for (i in 1:input$numDiscreteX) {
@@ -323,19 +323,13 @@ server <- function(input, output) {
         }
       }
     
-    print("test2")
-    
     values$names <- append(names(values$file)[values$continuousX], names)
     
     values$X <- X
     values$P <- ncol(X)
     
-    print(sprintf("P is %d\nncol(x) is %d\n", values$P, ncol(X)))
-    
     if (values$P == 0)
       values$X <- matrix(0, nrow = values$N, ncol = 1)
-    
-    print("test3")
     
     if (length(input$modelOpts) == 0) {
       values$QR <- FALSE
@@ -357,17 +351,13 @@ server <- function(input, output) {
       X_norm[, myseq(input$numContinuousX + 1, values$P)] <- values$X[, myseq(input$numContinuousX + 1, values$P)] - mean(values$X[, myseq(input$numContinuousX + 1, values$P)])
     }
     
-    print("test4")
-    
     values$X_norm <- X_norm
     
     if (values$norm)
       values$X <- values$X_norm
     
-    print("test5")
-    
-    print(sprintf("values$QR is %s", values$QR))
-    print(sprintf("values$norm is %s", values$norm))
+    # print(sprintf("values$QR is %s", values$QR))
+    # print(sprintf("values$norm is %s", values$norm))
     
     values$model <- stan_model(switch(input$model,
                                       "e" = "exponentiated_regression.stan",
