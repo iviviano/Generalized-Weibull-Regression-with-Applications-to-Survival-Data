@@ -8,6 +8,8 @@ library(survival)
 library(shinyvalidate)
 library(DT)
 library(shinydashboard)
+library(rjson)
+library(readxl)
 
 knitr::opts_chunk$set(echo = FALSE)
 options(mc.cores = parallel::detectCores())
@@ -37,7 +39,7 @@ ui <- #fluidPage(style = "flex-direction: column",
                            
                            column(3, wellPanel(
                              radioButtons("fileType", "Select the type of input file",
-                                          list(".csv", ".rds"))
+                                          list(".csv", ".json", ".rds", ".xlsx", ".xls"))
                            )),
                            
                            column(3, wellPanel(
@@ -121,7 +123,11 @@ server <- function(input, output) {
     
     file <- switch(input$fileType,
                    ".rds" = readRDS(input$file$datapath),
-                   ".csv" = read.csv(input$file$datapath))
+                   ".csv" = read.csv(input$file$datapath),
+                   ".json" = fromJSON(file = input$file$datapath),
+                   ".xlsx" = read_excel(input$file$datapath),
+                   ".xls" = read_excel(input$file$datapath)
+                   )
     
     values$file <- na.omit(file)
     

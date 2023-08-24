@@ -13,6 +13,7 @@
 - [shinyvalidate](https://rstudio.github.io/shinyvalidate/)
 - [DT](https://cran.r-project.org/web/packages/DT/index.html)
 - [shinydashboard](https://rstudio.github.io/shinydashboard/index.html)
+- [rjson]()
 
 ---
 
@@ -27,10 +28,10 @@ There are several options for the model:
 - The number of iterations to run each chain for
 - Whether to use an orthogonal decomposition of the data matrix for computations
 - Whether to use a normalization of the data for computations
-None of these options should affect the parameter estimates besides possibly improving convergence.
-The user may down
+None of these options should affect the parameter estimates besides possibly improving convergence. The user may down
 
 Note: stan models sometimes have convergence issues. If you are getting very large values for the predictions from cross-validation (upwards of 10 orders of magnitude larger than the real data) try running cross-validation again, possibly with more iterations. 
+
 ---
 
 ### Implementation Details
