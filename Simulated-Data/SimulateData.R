@@ -157,4 +157,4 @@ for (i in 1:length(samples)) {
 
 names(sim_data) <- names
 
-write.csv(sim_data, file = "sim_data.csv")
+write.csv(sim_data, file = "~/Desktop/R/Generalized-Weibull-Regression-with-Applications-to-Survival-Data/Simulated-Data/sim_data.csv")
